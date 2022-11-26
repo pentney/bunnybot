@@ -1,4 +1,5 @@
 import argparse
+from datetime import datetime, timedelta
 import magic
 import os
 import random
@@ -6,25 +7,44 @@ import sys
 import time
 
 from mastodon import Mastodon
-import requests
 
 # A Mastodon bot script to post a random bunny every hour.
+# (Currently runs at the half hour mark.)
 
-def run_server_loop(mastodon_client, bunny_path, bunny_choices):
+def run_client_loop(username, password, bunny_folder):
     mime = magic.Magic(mime=True)
     while True:
-        random_bunny = f"{bunny_path}/{random.choice(bunny_choices)}"
-        print(f"Time to post a bunny! I choose: {random_bunny}")
-        media_posted = mastodon_client.media_post(
-            random_bunny, mime_type=mime.from_file(random_bunny))
-        status = mastodon_client.status_post("", media_ids=[media_posted])
-        if status:
-            print(f"  ... posted! toot id: {status['url']}")
-        else:
-            print("  ... failed. :-(")
-        
+        try:
+            mastodon_client = Mastodon(
+                client_id=client_secret,
+                api_base_url="https://" + args.instance
+            )
+            mastodon_client.log_in(
+                username=username,
+                password=password,
+                scopes=["read", "write"],
+                to_file=username + ".secret"
+            )
+            print(f"Successfully logged in as {args.username}")
+            bunny_pictures = os.listdir(bunny_folder)
+            random_bunny = f"{bunny_folder}/{random.choice(bunny_pictures)}"
+            print(f"Time to post a bunny! I choose: {random_bunny}")
+            media_posted = mastodon_client.media_post(
+                random_bunny, mime_type=mime.from_file(random_bunny))
+            status = mastodon_client.status_post("", media_ids=[media_posted])
+            if status:
+                print(f"  ... posted! toot id: {status['url']}")
+            else:
+                print("  ... failed. :-(")
+        except:
+            print(f"login failed!")
+            
         # Now wait an hour before we post again.
-        time.sleep(3600)
+        dt = datetime.now() + timedelta(hours=1)
+        dt = dt.replace(minute=1)
+
+        while datetime.now() < dt:
+            time.sleep(1)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -43,25 +63,8 @@ if __name__ == "__main__":
             to_file = client_secret
         )
 
-    try:
-        mastodon_client = Mastodon(
-            client_id=client_secret,
-            api_base_url="https://" + args.instance
-        )
-        mastodon_client.log_in(
-            username=args.username,
-            password=args.password,
-            scopes=["read", "write"],
-            to_file=args.username + ".secret"
-        )
-        print(f"Successfully logged in as {args.username}")
-    except:
-        print(f"login failed!")
-        sys.exit(1)
-
-    bunny_pictures = os.listdir(args.bunny_folder)
     print("Bunnybot activated!")
-    run_server_loop(mastodon_client, args.bunny_folder, bunny_pictures)
+    run_client_loop(args.username, args.password, args.bunny_folder)
 
 
     
