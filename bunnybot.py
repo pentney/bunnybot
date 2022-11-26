@@ -9,7 +9,7 @@ import time
 from mastodon import Mastodon
 
 # A Mastodon bot script to post a random bunny every hour.
-# (Currently runs at the half hour mark.)
+# (Currently runs at five past the hour.)
 
 def run_client_loop(username, password, bunny_folder):
     mime = magic.Magic(mime=True)
@@ -41,7 +41,7 @@ def run_client_loop(username, password, bunny_folder):
             
         # Now wait an hour before we post again.
         dt = datetime.now() + timedelta(hours=1)
-        dt = dt.replace(minute=1)
+        dt = dt.replace(minute=5)
 
         while datetime.now() < dt:
             time.sleep(1)
